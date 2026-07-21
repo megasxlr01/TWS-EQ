@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Earbuds EQ</string>
     <string name="subtitle">Software EQ that reshapes sound before it hits your Bluetooth earbuds — works with any earbud model.</string>
-    <string name="system_hook_note">Note: EQ applied here always affects audio from this app\'s own player. Some other apps (e.g. PowerAmp) can also be shaped system-wide, but most streaming apps (Spotify, YouTube Music) don\'t support this and must be equalized with their own in-app EQ if they have one.</string>
+    <string name="system_hook_note">Note: some apps (e.g. PowerAmp) opt in to system-wide EQ hooks and will pick up your sound signature automatically, but most streaming apps (Spotify, YouTube Music) don\'t support this and must be equalized with their own in-app EQ if they have one.</string>
 </resources>

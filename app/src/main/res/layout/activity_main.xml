@@ -164,69 +164,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Test player -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Card.Section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Test Player"
-                    android:textAppearance="@style/Text.SectionLabel"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="16dp"
-                    android:text="Pick a local audio file to hear the EQ applied in real time through your connected earbuds."
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/textNowPlaying"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="No file loaded"
-                    android:textAppearance="@style/Text.Readout"
-                    android:layout_marginBottom="16dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/buttonPickFile"
-                        style="@style/Button.Tonal"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="Choose File" />
-
-                    <Button
-                        android:id="@+id/buttonPlayPause"
-                        style="@style/Button.Primary"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:text="Play"
-                        android:enabled="false" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- Root access -->
         <com.google.android.material.card.MaterialCardView
             style="@style/Card.Section"
@@ -284,7 +221,7 @@
                     style="@style/Switch.EarbudsEQ"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Use Global Mix EQ instead"
+                    android:text="Enable Global Mix EQ"
                     android:textAppearance="@style/Text.Body"
                     android:textColor="@color/text_primary"
                     android:enabled="false" />
@@ -295,85 +232,7 @@
                     android:layout_marginTop="8dp"
                     android:textAppearance="@style/Text.Body"
                     android:textSize="11sp"
-                    android:text="Global Mix attaches the EQ straight to the system output — lower latency, no consent popup, works even with apps that block capture. Reliability varies by device; if it doesn't seem to change the sound, switch this off and use System-Wide EQ below instead." />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- System-wide EQ -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Card.Section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="4dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="System-Wide EQ"
-                        android:textAppearance="@style/Text.SectionLabel" />
-
-                    <View
-                        android:id="@+id/dotSystemEqStatus"
-                        android:layout_width="8dp"
-                        android:layout_height="8dp"
-                        android:background="@drawable/dot_indicator" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/textShizukuStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="16dp"
-                    android:text="Checking Shizuku…"
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="13sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <Button
-                        android:id="@+id/buttonShizukuAction"
-                        style="@style/Button.Tonal"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="Set up" />
-
-                    <Button
-                        android:id="@+id/buttonToggleSystemEq"
-                        style="@style/Button.Primary"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:text="Enable"
-                        android:enabled="false" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="11sp"
-                    android:text="Some apps (notably Spotify) can block audio capture on their end — outside this app's control without root." />
+                    android:text="Global Mix attaches the EQ straight to the system output — lower latency, no consent popup, works even with apps that block capture. Reliability varies by device." />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

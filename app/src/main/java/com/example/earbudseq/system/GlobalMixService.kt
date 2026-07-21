@@ -10,21 +10,20 @@ import com.example.earbudseq.audio.EqEngine
 import com.example.earbudseq.audio.SoundSignature
 
 /**
- * Alternative to SystemCaptureService for rooted devices. Instead of capturing and
- * re-outputting audio (which adds latency and requires MediaProjection consent each
- * session), this attaches the Equalizer/BassBoost/Virtualizer directly to audio
- * session 0 — Android's global output mix.
+ * Root-only system-wide EQ mode. Instead of capturing and re-outputting audio
+ * (which adds latency and would require per-session consent), this attaches the
+ * Equalizer/BassBoost/Virtualizer directly to audio session 0 — Android's global
+ * output mix.
  *
- * Tradeoffs vs. the capture-based approach:
- *   + No MediaProjection popup, no re-consent after reboot
+ * Tradeoffs:
+ *   + No consent popup, no re-consent after reboot
  *   + Lower latency (it's an insert effect, not capture+replay)
  *   + Not affected by apps that set ALLOW_CAPTURE_BY_NONE (that flag only blocks
  *     capture of their audio, not insert effects on the shared output mix)
  *   - Whether session 0 effects actually reach Bluetooth output depends on the
  *     device's audio HAL / OEM audio policy — reliable on many AOSP-close devices,
  *     inconsistent on some heavily-customized ones (common on budget/regional
- *     Chinese phone skins). Test on your device; if you don't hear a difference,
- *     use the capture-based System-Wide EQ mode instead.
+ *     Chinese phone skins).
  */
 class GlobalMixService : Service() {
 

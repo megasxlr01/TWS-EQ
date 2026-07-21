@@ -4,9 +4,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.projection.MediaProjectionManager
+import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
@@ -14,59 +14,30 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.widget.SeekBar
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.earbudseq.audio.BandMapper
-import com.example.earbudseq.audio.EqService
+import com.example.earbudseq.audio.EqEngine
 import com.example.earbudseq.audio.SoundSignature
 import com.example.earbudseq.databinding.ActivityMainBinding
 import com.example.earbudseq.system.GlobalMixService
 import com.example.earbudseq.system.RootManager
-import com.example.earbudseq.system.ShizukuManager
-import com.example.earbudseq.system.SystemCaptureService
 import com.google.android.material.chip.Chip
-import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var service: EqService? = null
-    private var bound = false
-
-    private var systemCaptureService: SystemCaptureService? = null
-    private var systemCaptureBound = false
 
     private var globalMixService: GlobalMixService? = null
     private var globalMixBound = false
 
-    private val filePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { loadFile(it) }
-    }
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-            service = (binder as EqService.LocalBinder).getService()
-            bound = true
-            rebuildBandSlidersFromDevice()
-        }
-
-        override fun onServiceDisconnected(name: ComponentName) {
-            bound = false
-            service = null
-        }
-    }
-
-    private val systemCaptureConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-            systemCaptureService = (binder as SystemCaptureService.LocalBinder).getService()
-            systemCaptureBound = true
-        }
-        override fun onServiceDisconnected(name: ComponentName) {
-            systemCaptureBound = false
-            systemCaptureService = null
-        }
-    }
+    /** Device EQ capabilities, probed once independent of any live player/service. */
+    private data class DeviceBandInfo(
+        val numberOfBands: Short,
+        val centerFrequenciesHz: IntArray,
+        val bandLevelRangeMillibel: IntArray
+    )
+    private var deviceBandInfo: DeviceBandInfo? = null
 
     private val globalMixConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -79,39 +50,45 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
-        runOnUiThread { refreshShizukuStatus() }
-    }
-
-    private val mediaProjectionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val data = result.data
-        if (result.resultCode == RESULT_OK && data != null) {
-            bindAndStartCapture(result.resultCode, data)
-        } else {
-            binding.textShizukuStatus.text = "System-wide capture was declined."
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val intent = Intent(this, EqService::class.java)
-        ContextCompat.startForegroundService(this, intent)
-        bindService(intent, connection, Context.BIND_AUTO_CREATE)
-
-        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
-
         buildPresetChips()
-        setupPlayerControls()
-        setupSystemWideEqControls()
         setupRootControls()
         setupBackgroundReliabilityControls()
-        refreshShizukuStatus()
         refreshRootStatus()
+        probeDeviceBandInfo()
+    }
+
+    /**
+     * Manual EQ sliders previously only appeared once the built-in test player had a
+     * live Equalizer (i.e. after loading a file) — so if you went straight to
+     * Global Mix without ever loading a test file, the Manual EQ section stayed
+     * empty and did nothing. Band count/frequencies/range are a fixed device
+     * property, not something tied to a specific playback session, so we can
+     * query them once via a throwaway Equalizer on a freshly generated session id and
+     * build the sliders immediately — independent of which mode is actually running.
+     */
+    private fun probeDeviceBandInfo() {
+        Thread {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val probeSessionId = audioManager.generateAudioSessionId()
+            val probe = EqEngine(probeSessionId)
+            val info = if (probe.numberOfBands > 0) {
+                DeviceBandInfo(
+                    probe.numberOfBands,
+                    probe.centerFrequenciesHz,
+                    probe.bandLevelRangeMillibel
+                )
+            } else null
+            probe.release()
+            runOnUiThread {
+                deviceBandInfo = info
+                rebuildBandSlidersFromDevice()
+            }
+        }.start()
     }
 
     private fun buildPresetChips() {
@@ -133,8 +110,6 @@ class MainActivity : AppCompatActivity() {
     private fun applySignature(sig: SoundSignature) {
         PrefsStore.saveSignature(this, sig)
         binding.textPresetDescription.text = sig.description
-        service?.applySignature(sig)
-        systemCaptureService?.applySignature(sig)
         globalMixService?.applySignature(sig)
         rebuildBandSlidersFromDevice() // reflect the preset's actual per-band values
     }
@@ -177,81 +152,6 @@ class MainActivity : AppCompatActivity() {
         updateBatteryButtonLabel()
     }
 
-    private fun setupSystemWideEqControls() {
-        binding.buttonShizukuAction.setOnClickListener {
-            when (ShizukuManager.currentStatus()) {
-                ShizukuManager.Status.NotInstalled, ShizukuManager.Status.NotRunning -> {
-                    binding.textShizukuStatus.text =
-                        "Open the Shizuku app and start it via Wireless debugging, then come back here."
-                }
-                ShizukuManager.Status.PermissionNeeded -> {
-                    ShizukuManager.requestPermission()
-                }
-                ShizukuManager.Status.Ready -> {
-                    val granted = ShizukuManager.grantCaptureAudioOutputPermission(this)
-                    refreshShizukuStatus()
-                    if (granted) {
-                        binding.textShizukuStatus.text = "Ready — system-wide EQ can be enabled."
-                        binding.buttonToggleSystemEq.isEnabled = true
-                    } else {
-                        binding.textShizukuStatus.text =
-                            "Permission grant failed. See README's Shizuku troubleshooting section."
-                    }
-                }
-            }
-        }
-
-        binding.buttonToggleSystemEq.setOnClickListener {
-            if (systemCaptureService?.isCapturing() == true) {
-                systemCaptureService?.stopCapture()
-                binding.buttonToggleSystemEq.text = "Enable"
-            } else {
-                val projectionManager = getSystemService(MediaProjectionManager::class.java)
-                mediaProjectionLauncher.launch(projectionManager.createScreenCaptureIntent())
-            }
-        }
-    }
-
-    private fun refreshShizukuStatus() {
-        val status = ShizukuManager.currentStatus()
-        binding.textShizukuStatus.text = when (status) {
-            ShizukuManager.Status.NotInstalled -> "Shizuku not detected. Install it from the Play Store or GitHub."
-            ShizukuManager.Status.NotRunning -> "Shizuku installed but not running. Start it via Wireless debugging."
-            ShizukuManager.Status.PermissionNeeded -> "Shizuku running — tap Set Up to grant this app access."
-            ShizukuManager.Status.Ready ->
-                if (ShizukuManager.hasCaptureAudioOutputPermission(this))
-                    "Ready — system-wide EQ can be enabled."
-                else
-                    "Shizuku connected — tap Set Up to unlock system audio capture."
-        }
-        binding.buttonShizukuAction.text = when (status) {
-            ShizukuManager.Status.Ready ->
-                if (ShizukuManager.hasCaptureAudioOutputPermission(this)) "Re-check" else "Set up"
-            else -> "Set up"
-        }
-        val ready = status == ShizukuManager.Status.Ready && ShizukuManager.hasCaptureAudioOutputPermission(this)
-        binding.buttonToggleSystemEq.isEnabled = ready
-        val dotColor = when {
-            ready -> com.example.earbudseq.R.color.accent
-            status == ShizukuManager.Status.PermissionNeeded -> com.example.earbudseq.R.color.accent_warm
-            else -> com.example.earbudseq.R.color.text_faint
-        }
-        binding.dotSystemEqStatus.backgroundTintList =
-            android.content.res.ColorStateList.valueOf(getColor(dotColor))
-    }
-
-    private fun bindAndStartCapture(resultCode: Int, data: Intent) {
-        val intent = Intent(this, SystemCaptureService::class.java)
-        ContextCompat.startForegroundService(this, intent)
-        bindService(intent, systemCaptureConnection, Context.BIND_AUTO_CREATE)
-        // Small delay isn't ideal, but bind + start need the service connected first.
-        binding.root.postDelayed({
-            val savedSignature = PrefsStore.loadSignature(this)
-            systemCaptureService?.startCapture(resultCode, data, savedSignature)
-            binding.buttonToggleSystemEq.text = "Disable"
-        }, 300)
-    }
-
     // ---- Root access (simpler permission grant + optional Global Mix EQ mode) ----
 
     private fun setupRootControls() {
@@ -262,7 +162,6 @@ class MainActivity : AppCompatActivity() {
                 if (granted) RootManager.restartAudioServer()
                 runOnUiThread {
                     refreshRootStatus()
-                    refreshShizukuStatus() // same permission unlocks the capture-based mode too
                 }
             }.start()
         }
@@ -270,16 +169,17 @@ class MainActivity : AppCompatActivity() {
         binding.switchGlobalMix.setOnCheckedChangeListener { _, isChecked ->
             PrefsStore.setGlobalMixEnabled(this, isChecked)
             if (isChecked) {
-                // Mutually exclusive with the capture-based mode to avoid double-processing.
-                if (systemCaptureService?.isCapturing() == true) {
-                    systemCaptureService?.stopCapture()
-                    binding.buttonToggleSystemEq.text = "Enable"
-                }
                 startGlobalMix()
             } else {
                 globalMixService?.stop()
             }
         }
+    }
+
+    private fun hasCaptureAudioOutputPermission(): Boolean {
+        return packageManager.checkPermission(
+            "android.permission.CAPTURE_AUDIO_OUTPUT", packageName
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun refreshRootStatus() {
@@ -288,7 +188,7 @@ class MainActivity : AppCompatActivity() {
             val hasRoot = RootManager.hasRoot()
             runOnUiThread {
                 if (hasRoot) {
-                    val hasPermission = ShizukuManager.hasCaptureAudioOutputPermission(this)
+                    val hasPermission = hasCaptureAudioOutputPermission()
                     binding.textRootStatus.text = if (hasPermission)
                         "Root detected — capture permission already granted."
                     else
@@ -324,25 +224,25 @@ class MainActivity : AppCompatActivity() {
 
     /** Builds slider rows matching whatever bands the real device Equalizer exposes. */
     private fun rebuildBandSlidersFromDevice() {
-        val eq = service?.eqEngine ?: return
+        val info = deviceBandInfo ?: return
         binding.bandSliderContainer.removeAllViews()
-        if (eq.numberOfBands <= 0) return
+        if (info.numberOfBands <= 0) return
 
-        val signature = service?.currentSignature ?: SoundSignature.FLAT
+        val signature = PrefsStore.loadSignature(this)
         val deviceGains = BandMapper.mapToDeviceBands(
-            signature, eq.centerFrequenciesHz, eq.bandLevelRangeMillibel
+            signature, info.centerFrequenciesHz, info.bandLevelRangeMillibel
         )
-        val rangeDb = eq.bandLevelRangeMillibel.map { it / 100f }
-        val currentGainsDb = FloatArray(eq.numberOfBands.toInt())
+        val rangeDb = info.bandLevelRangeMillibel.map { it / 100f }
+        val currentGainsDb = FloatArray(info.numberOfBands.toInt())
 
-        for (band in 0 until eq.numberOfBands) {
+        for (band in 0 until info.numberOfBands) {
             val row = LayoutInflater.from(this)
                 .inflate(com.example.earbudseq.R.layout.item_band_slider, binding.bandSliderContainer, false)
             val freqText = row.findViewById<TextView>(com.example.earbudseq.R.id.textBandFreq)
             val gainText = row.findViewById<TextView>(com.example.earbudseq.R.id.textBandGain)
             val seekBar = row.findViewById<SeekBar>(com.example.earbudseq.R.id.seekBarBand)
 
-            val freqHz = eq.centerFrequenciesHz[band]
+            val freqHz = info.centerFrequenciesHz[band]
             freqText.text = if (freqHz >= 1000) "${freqHz / 1000}kHz" else "${freqHz}Hz"
 
             val gainDb = deviceGains[band] / 100f
@@ -358,9 +258,7 @@ class MainActivity : AppCompatActivity() {
                     val newDb = rangeDb[0] + progress
                     gainText.text = "${"%.0f".format(newDb)}dB"
                     currentGainsDb[band] = newDb
-                    service?.applyCustomBandGainsDb(currentGainsDb)
-                    systemCaptureService?.applyCustomBandGainsDb(currentGainsDb)
-                    globalMixService?.applyCustomBandGainsDb(currentGainsDb)
+                    applyCustomGainsToAllActiveEngines(currentGainsDb)
                 }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
@@ -370,33 +268,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupPlayerControls() {
-        binding.buttonPickFile.setOnClickListener {
-            filePicker.launch("audio/*")
-        }
-        binding.buttonPlayPause.setOnClickListener {
-            val playing = service?.togglePlayPause() ?: false
-            binding.buttonPlayPause.text = if (playing) "Pause" else "Play"
-        }
-    }
-
-    private fun loadFile(uri: Uri) {
-        binding.textNowPlaying.text = "Loading…"
-        service?.loadAndPlay(uri) {
-            runOnUiThread {
-                binding.textNowPlaying.text = uri.lastPathSegment ?: "Playing"
-                binding.buttonPlayPause.isEnabled = true
-                binding.buttonPlayPause.text = "Pause"
-                rebuildBandSlidersFromDevice()
-            }
-        }
+    /** Pushes manual slider changes to whichever EQ mode(s) are actually running right now. */
+    private fun applyCustomGainsToAllActiveEngines(gainsDb: FloatArray) {
+        globalMixService?.applyCustomBandGainsDb(gainsDb)
     }
 
     override fun onDestroy() {
-        if (bound) unbindService(connection)
-        if (systemCaptureBound) unbindService(systemCaptureConnection)
         if (globalMixBound) unbindService(globalMixConnection)
-        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
         super.onDestroy()
     }
 }
