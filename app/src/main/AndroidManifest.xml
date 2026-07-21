@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!--
+         Normally system|signature protected — unusable by a regular app. We request it
+         here so that Shizuku (running with adb/shell privilege via wireless debugging)
+         can grant it to us at runtime with `pm grant`. Without this being granted,
+         system-wide capture will echo (play both original + processed audio).
+    -->
+    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT"
+        tools:ignore="ProtectedPermissions" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.EarbudsEQ"
+        android:supportsRtl="true">
+
+        <!-- Required for Shizuku to communicate with this app -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Foreground service that holds the global/system-session EQ effect alive -->
+        <service
+            android:name=".audio.EqService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <!--
+             Foreground service that captures the whole system audio mix, runs it
+             through the Equalizer/BassBoost, and re-plays it — this is the actual
+             system-wide EQ path. Requires the CAPTURE_AUDIO_OUTPUT permission to
+             be granted via Shizuku first, or it will echo.
+        -->
+        <service
+            android:name=".system.SystemCaptureService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false" />
+
+        <!--
+             Root-only alternative: a global-output-mix EQ (session 0), no capture
+             loop or MediaProjection needed. See GlobalMixService for tradeoffs.
+        -->
+        <service
+            android:name=".system.GlobalMixService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <!--
+             Standard "third-party audio effect" hook. Apps that opt into system EQ
+             control (PowerAmp, some local players, some browsers) broadcast this
+             when they start/stop a playback session. We listen and attach our
+             Equalizer/BassBoost/Virtualizer to that session's audio.
+             NOTE: Spotify, YouTube Music, and most streaming apps do NOT send this
+             broadcast, so this only benefits apps that opt in.
+        -->
+        <receiver
+            android:name=".audio.AudioSessionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.action.OPEN_AUDIO_EFFECT_CONTROL_SESSION" />
+                <action android:name="android.media.action.CLOSE_AUDIO_EFFECT_CONTROL_SESSION" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+             Restarts Global Mix EQ (root mode) automatically after a reboot — the only
+             system-wide mode that can restart without a user tap, since it needs no
+             MediaProjection consent. The capture-based mode can't auto-resume this way
+             (Android requires a fresh consent screen each time for security), so users
+             of that mode need to reopen the app once after a restart.
+        -->
+        <receiver
+            android:name=".system.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>
