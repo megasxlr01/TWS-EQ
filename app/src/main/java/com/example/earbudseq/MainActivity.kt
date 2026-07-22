@@ -72,21 +72,19 @@ override fun onResume() {
 }
 
 private fun setupCurveView() {
-    binding.eqCurveView.onBandChanged = { index, newGainDb ->
-        val info = deviceBandInfo ?: return@onBandChanged
-        globalMixService?.applySingleBandGainDb(index, newGainDb)
-        val current = binding.eqCurveView.bands.map { it.gainDb }.toFloatArray()
-        PrefsStore.saveCustomCurve(this, current)
-        binding.textSelectedPreset.text = "Custom"
-    }
-
-    binding.switchMasterEq.setOnCheckedChangeListener { _, isChecked ->
-        PrefsStore.setGlobalMixEnabled(this, isChecked)
-        if (isChecked) startGlobalMix() else globalMixService?.stop()
-    }
+binding.eqCurveView.onBandChanged = fun(index: Int, newGainDb: Float) {
+val info = deviceBandInfo ?: return
+globalMixService?.applySingleBandGainDb(index, newGainDb)
+val current = binding.eqCurveView.bands.map { it.gainDb }.toFloatArray()
+PrefsStore.saveCustomCurve(this, current)
+binding.textSelectedPreset.text = "Custom"
 }
 
-// (rest of your file remains exactly the same)
+```
+binding.switchMasterEq.setOnCheckedChangeListener { _, isChecked ->
+    PrefsStore.setGlobalMixEnabled(this, isChecked)
+    if (isChecked) startGlobalMix() else globalMixService?.stop()
+}
 ```
 
 }
