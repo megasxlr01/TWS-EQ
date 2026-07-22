@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import com.example.earbudseq.PrefsStore
 import com.example.earbudseq.audio.BandMapper
 import com.example.earbudseq.audio.EqEngine
 import com.example.earbudseq.audio.SoundSignature
@@ -47,7 +48,10 @@ class GlobalMixService : Service() {
 
     private val screenStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_ON && eqEngine != null) {
+            if (intent.action != Intent.ACTION_SCREEN_ON) return
+            if (eqEngine == null) {
+                start(PrefsStore.loadSignature(this@GlobalMixService))
+            } else {
                 reapplyCurrentSignature()
             }
         }
@@ -69,6 +73,13 @@ class GlobalMixService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // If the system killed and restarted us (START_STICKY), the engine is null.
+        // Reload the last-used signature from prefs and re-attach so the EQ survives
+        // background kills.
+        if (eqEngine == null) {
+            val saved = PrefsStore.loadSignature(this)
+            start(saved)
+        }
         return START_STICKY
     }
 
