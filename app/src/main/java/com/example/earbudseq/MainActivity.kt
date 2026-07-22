@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupCurveView() {
         binding.eqCurveView.onBandChanged = { index, newGainDb ->
-            val info = deviceBandInfo ?: return@onBandChanged
+            val info = deviceBandInfo ?: return@setOnBandChanged
             globalMixService?.applySingleBandGainDb(index, newGainDb)
             val current = binding.eqCurveView.bands.map { it.gainDb }.toFloatArray()
             PrefsStore.saveCustomCurve(this, current)
