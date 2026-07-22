@@ -5,86 +5,85 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.media.AudioManager
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
-import android.os.PowerManager
-import android.provider.Settings
-import android.view.Gravity
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import com.example.earbudseq.audio.BandMapper
-import com.example.earbudseq.audio.EqEngine
-import com.example.earbudseq.audio.SoundSignature
 import com.example.earbudseq.databinding.ActivityMainBinding
 import com.example.earbudseq.system.GlobalMixService
-import com.example.earbudseq.system.RootManager
-import com.example.earbudseq.ui.EqualizerCurveView
 
 class MainActivity : AppCompatActivity() {
 
-```
-private lateinit var binding: ActivityMainBinding
+    private lateinit var binding: ActivityMainBinding
 
-private var globalMixService: GlobalMixService? = null
-private var globalMixBound = false
+    private var globalMixService: GlobalMixService? = null
+    private var globalMixBound = false
 
-private data class DeviceBandInfo(
-    val numberOfBands: Short,
-    val centerFrequenciesHz: IntArray,
-    val bandLevelRangeMillibel: IntArray
-)
-private var deviceBandInfo: DeviceBandInfo? = null
+    private data class DeviceBandInfo(
+        val numberOfBands: Short,
+        val centerFrequenciesHz: IntArray,
+        val bandLevelRangeMillibel: IntArray
+    )
 
-private val globalMixConnection = object : ServiceConnection {
-    override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-        globalMixService = (binder as GlobalMixService.LocalBinder).getService()
-        globalMixBound = true
-        pushAllStateToService()
+    private var deviceBandInfo: DeviceBandInfo? = null
+
+    private val globalMixConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            globalMixService = (binder as GlobalMixService.LocalBinder).getService()
+            globalMixBound = true
+            pushAllStateToService()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            globalMixBound = false
+            globalMixService = null
+        }
     }
-    override fun onServiceDisconnected(name: ComponentName) {
-        globalMixBound = false
-        globalMixService = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setupCurveView()
     }
-}
 
-override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    binding = ActivityMainBinding.inflate(layoutInflater)
-    setContentView(binding.root)
+    override fun onStart() {
+        super.onStart()
+        val intent = Intent(this, GlobalMixService::class.java)
+        bindService(intent, globalMixConnection, Context.BIND_AUTO_CREATE)
+    }
 
-    setupEqMenu()
-    setupCurveView()
-    setupPresetDropdown()
-    setupDials()
-    setupVolumeSlider()
-    setupBackgroundReliabilityControls()
+    override fun onStop() {
+        super.onStop()
+        if (globalMixBound) {
+            unbindService(globalMixConnection)
+            globalMixBound = false
+        }
+    }
 
-    probeDeviceBandInfo()
-    refreshRootStatus()
-}
+    private fun setupCurveView() {
+        binding.eqCurveView.onBandChanged = fun(index: Int, newGainDb: Float) {
+            val info = deviceBandInfo ?: return
+            globalMixService?.applySingleBandGainDb(index, newGainDb)
+        }
 
-override fun onResume() {
-    super.onResume()
-    updateBatteryButtonLabel()
-}
+        binding.switchMasterEq.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                startGlobalMix()
+            } else {
+                globalMixService?.stop()
+            }
+        }
+    }
 
-private fun setupCurveView() {
-binding.eqCurveView.onBandChanged = fun(index: Int, newGainDb: Float) {
-val info = deviceBandInfo ?: return
-globalMixService?.applySingleBandGainDb(index, newGainDb)
-val current = binding.eqCurveView.bands.map { it.gainDb }.toFloatArray()
-PrefsStore.saveCustomCurve(this, current)
-binding.textSelectedPreset.text = "Custom"
-}
+    private fun startGlobalMix() {
+        val intent = Intent(this, GlobalMixService::class.java)
+        startService(intent)
+    }
 
-```
-binding.switchMasterEq.setOnCheckedChangeListener { _, isChecked ->
-    PrefsStore.setGlobalMixEnabled(this, isChecked)
-    if (isChecked) startGlobalMix() else globalMixService?.stop()
-}
-```
-
+    private fun pushAllStateToService() {
+        // Placeholder — safe empty implementation
+    }
 }
