@@ -10,14 +10,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!--
-         Normally system|signature protected — unusable by a regular app. Root can
-         grant it to us at runtime with `pm grant` (see RootManager). Without this
-         being granted, Global Mix EQ can still attach but some devices may pass
-         through unprocessed audio alongside it.
-    -->
-    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT"
-        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
@@ -37,8 +29,9 @@
         </activity>
 
         <!--
-             Root-only alternative: a global-output-mix EQ (session 0), no capture
-             loop or MediaProjection needed. See GlobalMixService for tradeoffs.
+             Root-only global-output-mix EQ (session 0) — the app's only system-wide
+             EQ path now. No capture loop, no MediaProjection consent needed.
+             See GlobalMixService for tradeoffs.
         -->
         <service
             android:name=".system.GlobalMixService"
@@ -62,7 +55,10 @@
             </intent-filter>
         </receiver>
 
-        <!-- Restarts Global Mix EQ (root mode) automatically after a reboot. -->
+        <!--
+             Restarts Global Mix EQ (root) automatically after a reboot — it needs no
+             consent screen, so this can happen with no user interaction.
+        -->
         <receiver
             android:name=".system.BootReceiver"
             android:exported="true">

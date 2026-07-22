@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="8dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="20dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -56,6 +56,256 @@
                 android:textAppearance="@style/Text.Body" />
         </LinearLayout>
 
+        <!-- Equalizer -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Card.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Card title row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Equalizer"
+                        android:textAppearance="@style/Text.Display"
+                        android:textSize="20sp" />
+
+                    <ImageButton
+                        android:id="@+id/buttonEqMenu"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_more_vert"
+                        android:contentDescription="More options" />
+                </LinearLayout>
+
+                <!-- Master enable row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="4dp">
+
+                    <View
+                        android:id="@+id/dotRootStatus"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/dot_indicator" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Equalizer"
+                        android:textAppearance="@style/Text.Body"
+                        android:textColor="@color/text_primary" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchMasterEq"
+                        style="@style/Switch.EarbudsEQ"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="false" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/textRootStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:text="Checking for root…"
+                    android:textAppearance="@style/Text.Body"
+                    android:textSize="11sp" />
+
+                <!-- Curve graph -->
+                <com.example.earbudseq.ui.EqualizerCurveView
+                    android:id="@+id/eqCurveView"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Presets row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Presets"
+                        android:textAppearance="@style/Text.Body"
+                        android:textColor="@color/text_primary" />
+
+                    <LinearLayout
+                        android:id="@+id/buttonPresetDropdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/chip_background_static"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp">
+
+                        <TextView
+                            android:id="@+id/textSelectedPreset"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Custom"
+                            android:textAppearance="@style/Text.Body"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginStart="6dp"
+                            android:src="@drawable/ic_dropdown" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Bass Boost / Loudness / Virtualizer dials -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:background="@drawable/dial_card_background"
+                        android:padding="12dp"
+                        android:layout_marginEnd="6dp">
+
+                        <com.example.earbudseq.ui.CircularDialView
+                            android:id="@+id/dialBassBoost"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchBassBoost"
+                            style="@style/Switch.EarbudsEQ"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:scaleX="0.8"
+                            android:scaleY="0.8" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Bass Boost"
+                            android:textAppearance="@style/Text.Body"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:background="@drawable/dial_card_background"
+                        android:padding="12dp"
+                        android:layout_marginHorizontal="6dp">
+
+                        <com.example.earbudseq.ui.CircularDialView
+                            android:id="@+id/dialLoudness"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchLoudness"
+                            style="@style/Switch.EarbudsEQ"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:scaleX="0.8"
+                            android:scaleY="0.8" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Loudness"
+                            android:textAppearance="@style/Text.Body"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:background="@drawable/dial_card_background"
+                        android:padding="12dp"
+                        android:layout_marginStart="6dp">
+
+                        <com.example.earbudseq.ui.CircularDialView
+                            android:id="@+id/dialVirtualizer"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchVirtualizer"
+                            style="@style/Switch.EarbudsEQ"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:scaleX="0.8"
+                            android:scaleY="0.8" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Virtualizer"
+                            android:textAppearance="@style/Text.Body"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Volume -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Volume"
+                    android:textAppearance="@style/Text.Body"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="4dp" />
+
+                <SeekBar
+                    android:id="@+id/seekBarVolume"
+                    android:theme="@style/Theme.EarbudsEQ.SeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Background & Reliability -->
         <com.google.android.material.card.MaterialCardView
             style="@style/Card.Section"
@@ -79,7 +329,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="Active EQ modes run as foreground services with a persistent notification, which Android won't kill on its own. Some phone makers (MIUI, ColorOS, and similar) still aggressively stop background apps regardless — exempting this app from battery optimization prevents that."
+                    android:text="The equalizer runs as a foreground service with a persistent notification, which Android won't kill on its own. Some phone makers (MIUI, ColorOS, and similar) still aggressively stop background apps regardless — exempting this app from battery optimization prevents that."
                     android:textAppearance="@style/Text.Body"
                     android:textSize="12sp" />
 
@@ -89,150 +339,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Disable Battery Optimization for This App" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Sound signature presets -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Card.Section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sound Signature"
-                    android:textAppearance="@style/Text.SectionLabel"
-                    android:layout_marginBottom="12dp" />
-
-                <HorizontalScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:scrollbars="none"
-                    android:clipToPadding="false">
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chipGroupPresets"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:singleLine="true"
-                        app:chipSpacingHorizontal="8dp"
-                        app:singleSelection="true"
-                        app:selectionRequired="true" />
-                </HorizontalScrollView>
-
-                <TextView
-                    android:id="@+id/textPresetDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="13sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Manual EQ -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Card.Section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Manual EQ"
-                    android:textAppearance="@style/Text.SectionLabel"
-                    android:layout_marginBottom="4dp" />
-
-                <LinearLayout
-                    android:id="@+id/bandSliderContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Root access -->
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Card.Section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="4dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Root Access"
-                        android:textAppearance="@style/Text.SectionLabel" />
-
-                    <View
-                        android:id="@+id/dotRootStatus"
-                        android:layout_width="8dp"
-                        android:layout_height="8dp"
-                        android:background="@drawable/dot_indicator" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/textRootStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="16dp"
-                    android:text="Checking for root…"
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="13sp" />
-
-                <Button
-                    android:id="@+id/buttonRootGrant"
-                    style="@style/Button.Primary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:text="Grant Capture Permission (Root)"
-                    android:enabled="false" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchGlobalMix"
-                    style="@style/Switch.EarbudsEQ"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Enable Global Mix EQ"
-                    android:textAppearance="@style/Text.Body"
-                    android:textColor="@color/text_primary"
-                    android:enabled="false" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textAppearance="@style/Text.Body"
-                    android:textSize="11sp"
-                    android:text="Global Mix attaches the EQ straight to the system output — lower latency, no consent popup, works even with apps that block capture. Reliability varies by device." />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

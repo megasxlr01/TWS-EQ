@@ -1,16 +1,12 @@
 package com.example.earbudseq.system
 
-import android.content.Context
-import android.content.pm.PackageManager
 import android.util.Log
 import java.io.BufferedReader
-import java.io.DataOutputStream
 import java.io.InputStreamReader
 
 /**
- * Thin wrapper around `su` for devices with root (Magisk or otherwise). This is the
- * simpler alternative to the Shizuku path: root can grant CAPTURE_AUDIO_OUTPUT directly,
- * no wireless-debugging pairing or companion app needed.
+ * Thin wrapper around `su` for devices with root (Magisk or otherwise). Used to check
+ * root availability so the app can gate Global Mix EQ behind it.
  */
 object RootManager {
 
@@ -45,24 +41,5 @@ object RootManager {
             Log.w(TAG, "su invocation failed: ${e.message}")
             null
         }
-    }
-
-    /** Grants CAPTURE_AUDIO_OUTPUT directly — the root equivalent of the Shizuku flow. */
-    fun grantCaptureAudioOutputPermission(context: Context): Boolean {
-        val pkg = context.packageName
-        val result = runAsRoot("pm grant $pkg android.permission.CAPTURE_AUDIO_OUTPUT")
-        Log.i(TAG, "pm grant exit=${result?.exitCode} out=${result?.output} err=${result?.error}")
-        return context.packageManager.checkPermission(
-            "android.permission.CAPTURE_AUDIO_OUTPUT", pkg
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    /**
-     * Some devices need audioserver restarted for a fresh permission grant to take
-     * effect immediately, rather than waiting for next reboot. Safe no-op if it fails —
-     * audioserver auto-restarts and any active playback just briefly blips.
-     */
-    fun restartAudioServer() {
-        runAsRoot("killall audioserver")
     }
 }

@@ -10,17 +10,17 @@ import com.example.earbudseq.audio.EqEngine
 import com.example.earbudseq.audio.SoundSignature
 
 /**
- * Root-only system-wide EQ mode. Instead of capturing and re-outputting audio
- * (which adds latency and would require per-session consent), this attaches the
- * Equalizer/BassBoost/Virtualizer directly to audio session 0 — Android's global
- * output mix.
+ * The app's only system-wide EQ path: attaches Equalizer/BassBoost/Virtualizer/
+ * LoudnessEnhancer directly to audio session 0 — Android's global output mix.
+ * Requires root (see RootManager) since regular apps generally can't rely on
+ * session-0 effects actually reaching hardware output.
  *
- * Tradeoffs:
- *   + No consent popup, no re-consent after reboot
- *   + Lower latency (it's an insert effect, not capture+replay)
+ * Tradeoffs to be aware of:
+ *   + No consent popup, ever
+ *   + Low latency (it's an insert effect, not capture+replay)
  *   + Not affected by apps that set ALLOW_CAPTURE_BY_NONE (that flag only blocks
- *     capture of their audio, not insert effects on the shared output mix)
- *   - Whether session 0 effects actually reach Bluetooth output depends on the
+ *     audio *capture*, not insert effects on the shared output mix)
+ *   - Whether session-0 effects actually reach Bluetooth output depends on the
  *     device's audio HAL / OEM audio policy — reliable on many AOSP-close devices,
  *     inconsistent on some heavily-customized ones (common on budget/regional
  *     Chinese phone skins).
@@ -111,6 +111,27 @@ class GlobalMixService : Service() {
         val millibel = ShortArray(gainsDb.size) { (gainsDb[it] * 100).toInt().toShort() }
         eq.applyBandGains(millibel)
     }
+
+    /** Adjusts a single band without touching the others — used by curve-drag edits. */
+    fun applySingleBandGainDb(band: Int, gainDb: Float) {
+        eqEngine?.applyBandGain(band, (gainDb * 100).toInt().toShort())
+    }
+
+    fun setBassBoostPercent(percent: Int) {
+        eqEngine?.setBassBoostStrength((percent.coerceIn(0, 100) * 10).toShort())
+    }
+
+    fun setVirtualizerPercent(percent: Int) {
+        eqEngine?.setVirtualizerStrength((percent.coerceIn(0, 100) * 10).toShort())
+    }
+
+    fun setLoudnessPercent(percent: Int) {
+        eqEngine?.setLoudnessPercent(percent)
+    }
+
+    fun setBassBoostEnabled(enabled: Boolean) = eqEngine?.setBassBoostEnabled(enabled)
+    fun setVirtualizerEnabled(enabled: Boolean) = eqEngine?.setVirtualizerEnabled(enabled)
+    fun setLoudnessEnabled(enabled: Boolean) = eqEngine?.setLoudnessEnabled(enabled)
 
     fun getEqEngine(): EqEngine? = eqEngine
 

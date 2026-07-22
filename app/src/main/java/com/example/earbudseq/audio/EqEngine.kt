@@ -2,12 +2,13 @@ package com.example.earbudseq.audio
 
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import android.util.Log
 
 /**
- * Wraps Equalizer / BassBoost / Virtualizer for a single Android audio session.
- * One instance = one active playback session getting shaped.
+ * Wraps Equalizer / BassBoost / Virtualizer / LoudnessEnhancer for a single Android
+ * audio session. One instance = one active playback session getting shaped.
  */
 class EqEngine(audioSessionId: Int) {
 
@@ -18,6 +19,8 @@ class EqEngine(audioSessionId: Int) {
     var bassBoost: BassBoost? = null
         private set
     var virtualizer: Virtualizer? = null
+        private set
+    var loudnessEnhancer: LoudnessEnhancer? = null
         private set
 
     val numberOfBands: Short
@@ -41,6 +44,12 @@ class EqEngine(audioSessionId: Int) {
             Virtualizer(0, audioSessionId).apply { enabled = true }
         } catch (e: Exception) {
             Log.w(tag, "Virtualizer unavailable: ${e.message}")
+            null
+        }
+        loudnessEnhancer = try {
+            LoudnessEnhancer(audioSessionId).apply { enabled = true }
+        } catch (e: Exception) {
+            Log.w(tag, "LoudnessEnhancer unavailable: ${e.message}")
             null
         }
 
@@ -68,6 +77,17 @@ class EqEngine(audioSessionId: Int) {
         }
     }
 
+    /** Sets a single band without touching the others. */
+    fun applyBandGain(band: Int, gainMillibel: Short) {
+        val eq = equalizer ?: return
+        val clamped = gainMillibel.coerceIn(bandLevelRangeMillibel[0].toShort(), bandLevelRangeMillibel[1].toShort())
+        try {
+            eq.setBandLevel(band.toShort(), clamped)
+        } catch (e: Exception) {
+            Log.w(tag, "setBandLevel failed band=$band: ${e.message}")
+        }
+    }
+
     /** 0-1000 per BassBoost.setStrength spec (0 = off, 1000 = max). */
     fun setBassBoostStrength(strength: Short) {
         try {
@@ -86,12 +106,36 @@ class EqEngine(audioSessionId: Int) {
         }
     }
 
+    /** percent 0-100, mapped to 0-2000 millibel of perceptual loudness gain. */
+    fun setLoudnessPercent(percent: Int) {
+        try {
+            val gainMillibel = (percent.coerceIn(0, 100) / 100f * 2000f)
+            loudnessEnhancer?.setTargetGain(gainMillibel.toInt())
+        } catch (e: Exception) {
+            Log.w(tag, "LoudnessEnhancer gain failed: ${e.message}")
+        }
+    }
+
+    fun setBassBoostEnabled(enabled: Boolean) {
+        try { bassBoost?.enabled = enabled } catch (_: Exception) {}
+    }
+
+    fun setVirtualizerEnabled(enabled: Boolean) {
+        try { virtualizer?.enabled = enabled } catch (_: Exception) {}
+    }
+
+    fun setLoudnessEnabled(enabled: Boolean) {
+        try { loudnessEnhancer?.enabled = enabled } catch (_: Exception) {}
+    }
+
     fun release() {
         equalizer?.release()
         bassBoost?.release()
         virtualizer?.release()
+        loudnessEnhancer?.release()
         equalizer = null
         bassBoost = null
         virtualizer = null
+        loudnessEnhancer = null
     }
 }
