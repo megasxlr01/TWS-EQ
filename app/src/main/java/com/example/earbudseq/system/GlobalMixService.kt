@@ -140,11 +140,13 @@ class GlobalMixService : Service() {
     fun stop() {
         eqEngine?.release()
         eqEngine = null
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     override fun onDestroy() {
-        stop()
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        eqEngine?.release()
+        eqEngine = null
         super.onDestroy()
     }
 }
