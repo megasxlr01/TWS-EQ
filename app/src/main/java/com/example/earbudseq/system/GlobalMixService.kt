@@ -102,8 +102,12 @@ class GlobalMixService : Service() {
             )
             eq.applyBandGains(gains)
         }
+        eq.setBassBoostEnabled(signature.bassEnabled)
         eq.setBassBoostStrength(signature.bassBoost)
+        eq.setVirtualizerEnabled(signature.virtualizerEnabled)
         eq.setVirtualizerStrength(signature.virtualizer)
+        eq.setLoudnessEnabled(signature.loudnessEnabled)
+        eq.setLoudnessPercent(signature.loudness)
     }
 
     fun applyCustomBandGainsDb(gainsDb: FloatArray) {

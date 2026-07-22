@@ -257,8 +257,31 @@ class MainActivity : AppCompatActivity() {
             val gainsDb = signatureToGainsDb(signature, info.centerFrequenciesHz, info.bandLevelRangeMillibel)
             updateCurveBands(gainsDb)
         }
+
+        applyPresetEffects(signature)
         globalMixService?.applySignature(signature)
-        pushAllStateToService()
+    }
+
+    private fun applyPresetEffects(signature: SoundSignature) {
+        val bassPercent = (signature.bassBoost / 10).coerceIn(0, 100)
+        val virtPercent = (signature.virtualizer / 10).coerceIn(0, 100)
+        val loudnessPercent = signature.loudness.coerceIn(0, 100)
+
+        binding.dialBassBoost.value = bassPercent
+        binding.dialLoudness.value = loudnessPercent
+        binding.dialVirtualizer.value = virtPercent
+
+        PrefsStore.setBassPercent(this, bassPercent)
+        PrefsStore.setLoudnessPercent(this, loudnessPercent)
+        PrefsStore.setVirtualizerPercent(this, virtPercent)
+
+        binding.switchBassBoost.isChecked = signature.bassEnabled
+        binding.switchLoudness.isChecked = signature.loudnessEnabled
+        binding.switchVirtualizer.isChecked = signature.virtualizerEnabled
+
+        PrefsStore.setBassEnabled(this, signature.bassEnabled)
+        PrefsStore.setLoudnessEnabled(this, signature.loudnessEnabled)
+        PrefsStore.setVirtualizerEnabled(this, signature.virtualizerEnabled)
     }
 
     private fun updateCurveBands(gainsDb: FloatArray) {
@@ -276,7 +299,7 @@ class MainActivity : AppCompatActivity() {
         val virtDefault = (currentSignature.virtualizer / 10).coerceIn(0, 100)
 
         binding.dialBassBoost.value = PrefsStore.getBassPercent(this, bassDefault)
-        binding.dialLoudness.value = PrefsStore.getLoudnessPercent(this, 0)
+        binding.dialLoudness.value = PrefsStore.getLoudnessPercent(this, currentSignature.loudness.coerceIn(0, 100))
         binding.dialVirtualizer.value = PrefsStore.getVirtualizerPercent(this, virtDefault)
 
         binding.switchBassBoost.isChecked = PrefsStore.getBassEnabled(this)
