@@ -36,8 +36,12 @@ class AudioSessionReceiver : BroadcastReceiver() {
                     )
                     engine.applyBandGains(gains)
                 }
+                engine.setBassBoostEnabled(signature.bassEnabled)
                 engine.setBassBoostStrength(signature.bassBoost)
+                engine.setVirtualizerEnabled(signature.virtualizerEnabled)
                 engine.setVirtualizerStrength(signature.virtualizer)
+                engine.setLoudnessEnabled(signature.loudnessEnabled)
+                engine.setLoudnessPercent(signature.loudness)
             }
 
             AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION -> {

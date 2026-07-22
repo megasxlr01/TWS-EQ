@@ -1,7 +1,10 @@
 package com.example.earbudseq.system
 
 import android.app.*
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -42,9 +45,21 @@ class GlobalMixService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_ON && eqEngine != null) {
+                reapplyCurrentSignature()
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         startForegroundNotification()
+        registerReceiver(
+            screenStateReceiver,
+            IntentFilter(Intent.ACTION_SCREEN_ON)
+        )
         // If we were started by BootReceiver (no activity bound yet), start processing
         // immediately with the last-used preset rather than waiting for the app to open.
         pendingBootSignature?.let { sig ->
@@ -95,6 +110,10 @@ class GlobalMixService : Service() {
 
     fun applySignature(signature: SoundSignature) {
         currentSignature = signature
+        applyToEngine(signature)
+    }
+
+    private fun applyToEngine(signature: SoundSignature) {
         val eq = eqEngine ?: return
         if (eq.numberOfBands > 0) {
             val gains = BandMapper.mapToDeviceBands(
@@ -108,6 +127,23 @@ class GlobalMixService : Service() {
         eq.setVirtualizerStrength(signature.virtualizer)
         eq.setLoudnessEnabled(signature.loudnessEnabled)
         eq.setLoudnessPercent(signature.loudness)
+    }
+
+    /**
+     * Android can tear down session-0 audio effects when the screen turns off.
+     * When the screen comes back on we re-create the engine and re-apply the
+     * current signature so the last settings persist.
+     */
+    private fun reapplyCurrentSignature() {
+        eqEngine?.release()
+        eqEngine = null
+        val engine = EqEngine(0)
+        if (engine.equalizer != null) {
+            eqEngine = engine
+            applyToEngine(currentSignature)
+        } else {
+            engine.release()
+        }
     }
 
     fun applyCustomBandGainsDb(gainsDb: FloatArray) {
@@ -149,6 +185,7 @@ class GlobalMixService : Service() {
     }
 
     override fun onDestroy() {
+        try { unregisterReceiver(screenStateReceiver) } catch (_: Exception) {}
         eqEngine?.release()
         eqEngine = null
         super.onDestroy()

@@ -4,9 +4,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.database.ContentObserver
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
 import android.provider.Settings
 import android.widget.PopupMenu
@@ -37,6 +39,8 @@ class MainActivity : AppCompatActivity() {
 
     private var deviceBandInfo: DeviceBandInfo? = null
     private var currentSignature: SoundSignature = SoundSignature.FLAT
+    private var audioManager: AudioManager? = null
+    private var volumeObserver: ContentObserver? = null
 
     private val globalMixConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -81,6 +85,12 @@ class MainActivity : AppCompatActivity() {
             unbindService(globalMixConnection)
             globalMixBound = false
         }
+    }
+
+    override fun onDestroy() {
+        volumeObserver?.let { contentResolver.unregisterContentObserver(it) }
+        volumeObserver = null
+        super.onDestroy()
     }
 
     // ── Root detection ───────────────────────────────────────────────
@@ -336,24 +346,43 @@ class MainActivity : AppCompatActivity() {
     // ── Volume ────────────────────────────────────────────────────────
 
     private fun setupVolume() {
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+        audioManager = am
+        val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         binding.seekBarVolume.max = maxVol
 
-        val savedVol = PrefsStore.getVolume(this, audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
-        binding.seekBarVolume.progress = savedVol
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, savedVol, 0)
+        val currentVol = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val savedVol = PrefsStore.getVolume(this, currentVol)
+        if (savedVol != currentVol) {
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, savedVol, 0)
+        }
+        binding.seekBarVolume.progress = am.getStreamVolume(AudioManager.STREAM_MUSIC)
 
         binding.seekBarVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
+                    am.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
                     PrefsStore.setVolume(this@MainActivity, progress)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        volumeObserver = object : ContentObserver(Handler(mainLooper)) {
+            override fun onChange(selfChange: Boolean) {
+                val vol = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                if (binding.seekBarVolume.progress != vol) {
+                    binding.seekBarVolume.progress = vol
+                    PrefsStore.setVolume(this@MainActivity, vol)
+                }
+            }
+        }
+        contentResolver.registerContentObserver(
+            Settings.System.CONTENT_URI,
+            true,
+            volumeObserver!!
+        )
     }
 
     // ── Battery optimization exemption ────────────────────────────────
